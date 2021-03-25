@@ -23,6 +23,14 @@ typedef long integer_t;
 
 #endif
 
+#define op_append(type) \
+	void operator+=(type val) { operator+=(String(val)); }
+#define op_concat(type) \
+	String operator+(type val) { return operator+(String(val)); }
+
+#define op_assign(type) \
+	void operator=(type val) { operator=(String(val)); }
+
 namespace cmplx {
 
 inline char* strcpy(char* dest, const char* src) {
@@ -36,31 +44,59 @@ inline unsigned_t strlen(const char* str) {
 	return len;
 }
 
+// concats two strings
 inline char* strcat(const char* src, const char* concat) {
 	char* concatted = new char[strlen(src) + strlen(concat) + 1];
 	strcpy(strcpy(concatted, src), concat);
 	return concatted;
 }
 
+// frees src after concat.
+inline char* strcat_dsrc(char* src, const char* concat) {
+	char* concatted = new char[strlen(src) + strlen(concat) + 1];
+	strcpy(strcpy(concatted, src), concat);
+	delete[] src;
+	return concatted;
+}
+
+// frees both inputs after concat.
+inline char* strcat_dboth(char* src, char* concat) {
+	char* concatted = new char[strlen(src) + strlen(concat) + 1];
+	strcpy(strcpy(concatted, src), concat);
+	delete[] src;
+	delete[] concat;
+	return concatted;
+}
+
+// frees concat after concat
+inline char* strcat_dcon(const char* src, char* concat) {
+	char* concatted = new char[strlen(src) + strlen(concat) + 1];
+	strcpy(strcpy(concatted, src), concat);
+	delete[] concat;
+	return concatted;
+}
+
+// remember to delete[] !!!
 inline char* itoa(integer_t value, unsigned_t minlen = 0, unsigned_t radix = 10, bool checkSign = true) {
-	static char buf[32] = {0};
+	char* buf = new char[32];
+	buf[31] = 0;
 	int i = 30;
 	unsigned_t abs = value < 0 && checkSign ? (unsigned_t)-value : (unsigned_t)value;
 	for(; abs && i; abs /= radix) buf[i--] = "0123456789ABCDEF"[abs % radix];
 	while(i > 30 - minlen) buf[i--] = '0';
-	if(value < 0 && checkSign) buf[i] = '-';
+	if(checkSign && value < 0) buf[i] = '-';
 	if(value == 0) buf[i] = '0';
-	return &buf[i + (value > 0)];
+	char* destBuf = new char[strlen(&buf[i + (value > 0)]) + 1];
+	strcpy(destBuf, &buf[i + (value > 0)]);
+	delete[] buf;
+	return destBuf;
 }
 
 // remember to delete[] !!!
 inline char* ftoa(double num) {
-	integer_t x = (integer_t)((num - integer_t(num)) * 10000);
-	if(x < 0) x = -x;
-	char* org = strcat(itoa((integer_t)num), ".");
-	char* out = strcat(org, itoa(x, 4));
-	delete[] org;
-	return out;
+	int x = (int)((num - int(num)) * 10000);
+	char* joined = strcat_dboth(strcat_dsrc(itoa((int)num, 0, 10, false), "."), itoa(x < 0 ? -x : x, 4));
+	return x < 0 ? strcat_dcon("-", joined) : joined;
 }
 
 inline void strshift(char* toShift, char rangeTop, char rangeLower, char toAdd) {
@@ -123,49 +159,73 @@ class String {
 	bool doNotDestroy;
 
 	// base constructors
+
 	String() { defVal(""); }
+	String(const String& str) { defVal(str.strPtr); };
+
+	// extended constructor
+
 	String(const char* str, bool freeIn = false) { defVal(str, false, freeIn); }
 	String(bool keepalive, bool really) { defVal("", keepalive == really /* duh */); }
 
-	// constructor extensions
-	String(const String& str) { defVal(str.strPtr); };
-	String(integer_t num) { defVal(itoa(num)); };
-	String(int num) { defVal(itoa(num)); }; // for old compilers
-	String(double num) { defVal(ftoa(num), false, true); }
+	// implementations for various types - base for all
 
-	// set string
+	String(integer_t num) { defVal(itoa(num), false, true); };
+	String(int num) { defVal(itoa(num), false, true); };	  // for old compilers
+	String(unsigned num) { defVal(itoa(num), false, true); }; // for old compilers
+	String(double num) { defVal(ftoa(num), false, true); }
+	String(void* hex) { defVal(strcat_dcon("0x", itoa((unsigned_t)hex, 0, 16)), false, true); }
+
+	//-----------------------------------
+	// operator= - assign -- top are base
+	//-----------------------------------
+
 	void operator=(const char* str) { init(str); }
 	void operator=(const String& str) { init(str.strPtr); }
-	void operator=(integer_t num) { init(itoa(num)); }
-	void operator=(int num) { init(itoa(num)); } // for old compilers
-	void operator=(double num) { init(String(num).strPtr); }
 
-	// compare string
+	op_assign(integer_t);
+	op_assign(int);		 // for old compilers
+	op_assign(unsigned); // for old compilers
+	op_assign(void*);
+	op_assign(double);
+
+	//-----------------------------------
+	// operator== - compare
+	//-----------------------------------
+
 	bool operator==(const char* str) { return strcmp(strPtr, str); }
 	bool operator==(const String& str) { return strcmp(strPtr, str.strPtr); }
 
-	// append to current string
+	//-----------------------------------
+	// operator+= - append -- top are base
+	//-----------------------------------
+
 	void operator+=(const char* concat) { updateStr(&strPtr, strcat(strPtr, concat)); }
 	void operator+=(const String& concat) { operator+=(concat.strPtr); }
-	void operator+=(integer_t num) { operator+=(itoa(num)); }
-	void operator+=(int num) { operator+=(itoa(num)); } // for old compilers
-	void operator+=(void* addr) {
-		operator+=("0x");
-		operator+=(itoa((unsigned_t)addr, 0, 16, false));
-	}
-	void operator+=(double num) { operator+=(String(num)); }
 
-	// concat return new string
+	op_append(integer_t);
+	op_append(int);		 // for old compilers
+	op_append(unsigned); // for old compilers
+	op_append(void*);
+	op_append(double);
+
+	//-----------------------------------
+	// operator+ - join two -- top are base
+	//-----------------------------------
+
 	String operator+(const char* concat) { return String(strcat(strPtr, concat), true); }
 	String operator+(const String& concat) { return operator+(concat.strPtr); }
-	String operator+(integer_t num) { return operator+(itoa(num)); }
-	String operator+(int num) { return operator+(itoa(num)); } // for old compilers
-	String operator+(void* addr) { return operator+("0x").operator+(itoa((unsigned_t)addr, 0, 16, false)); }
+
+	op_concat(integer_t);
+	op_concat(int);		 // for old compilers
+	op_concat(unsigned); // for old compilers
+	op_concat(void*);
+	op_concat(double);
+
 	String operator+(char ch) {
 		char x[2] = {ch, 0};
 		return operator+(x);
 	}
-	String operator+(double num) { return operator+(String(num)); }
 
 	// index into string
 	// returns nullpointer if overrange
@@ -176,5 +236,9 @@ class String {
 
 // legacy typedef
 typedef cmplx::String STRNAME;
+
+#undef op_assign
+#undef op_concat
+#undef op_append
 
 #endif

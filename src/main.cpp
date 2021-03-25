@@ -1,8 +1,9 @@
+#include "windows.h"
 #include <stdio.h>
 #include <str.h>
 #define println(x) printf("%s\n", x)
 
 int main(int argc, char const* argv[]) {
-	println("hello");
+	println(str(-0.6));
 	return 0;
 }
