@@ -95,7 +95,7 @@ inline char* itoa(integer_t value, unsigned_t minlen = 0, unsigned_t radix = 10,
 // remember to delete[] !!!
 inline char* ftoa(double num) {
 	int x = (int)((num - int(num)) * 10000);
-	char* joined = strcat_dboth(strcat_dsrc(itoa((int)num, 0, 10, false), "."), itoa(x < 0 ? -x : x, 4));
+	char* joined = strcat_dboth(strcat_dsrc(itoa((int)(x < 0 ? -num : num)), "."), itoa(x < 0 ? -x : x, 4));
 	return x < 0 ? strcat_dcon("-", joined) : joined;
 }
 
@@ -171,8 +171,8 @@ class String {
 	// implementations for various types - base for all
 
 	String(integer_t num) { defVal(itoa(num), false, true); };
-	String(int num) { defVal(itoa(num), false, true); };	  // for old compilers
-	String(unsigned num) { defVal(itoa(num), false, true); }; // for old compilers
+	String(int num) { defVal(itoa(num), false, true); };					// for old compilers
+	String(unsigned num) { defVal(itoa(num, 0, 10, false), false, true); }; // for old compilers
 	String(double num) { defVal(ftoa(num), false, true); }
 	String(void* hex) { defVal(strcat_dcon("0x", itoa((unsigned_t)hex, 0, 16)), false, true); }
 

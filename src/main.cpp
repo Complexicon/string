@@ -4,6 +4,6 @@
 #define println(x) printf("%s\n", x)
 
 int main(int argc, char const* argv[]) {
-	println(str(-0.6));
+	println(str(7.6));
 	return 0;
 }
