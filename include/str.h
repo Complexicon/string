@@ -8,7 +8,7 @@
 #endif
 
 #define str(x) (cmplx::String() + x).c_str()
-#define eternalstr(x) (cmplx::String(true, true) + x).c_str()
+#define eternalstr(x) (cmplx::String((cmplx::String() + x), true)).c_str()
 #define strn(x) (cmplx::String() + x)
 
 #ifdef _WIN64
@@ -147,13 +147,34 @@ class String {
 		if(begin < len()) init(String(strPtr + begin).strPtr);
 	};
 
-	void substring(unsigned begin, unsigned end) {
+	void substring(unsigned_t begin, unsigned_t end) {
 		if(begin < len() && end < len()) {
 			String tmp(strPtr + begin);
 			tmp[end] = 0;
 			init(tmp.strPtr);
 		}
 	};
+
+	unsigned_t lastIndexOf(char c) {
+		unsigned_t len = 0;
+		unsigned_t lastIndex = 0;
+		while(*(strPtr + len) != '\0') {
+			if(*(strPtr + len) == c) lastIndex = len;
+			len++;
+		}
+		return lastIndex;
+	}
+
+	bool contains(const char* key) {
+		const char* temp = strPtr;
+		const char* cpr = key;
+		do {
+			if(*cpr != 0) cpr = !(*temp == *cpr++) ? key : cpr;
+			else
+				return true;
+		} while(*temp++ != 0);
+		return false;
+	}
 
 	// dont free stringpointer on destructor if true
 	bool doNotDestroy;
@@ -162,6 +183,7 @@ class String {
 
 	String() { defVal(""); }
 	String(const String& str) { defVal(str.strPtr); };
+	String(const String& str, bool dnd) { defVal(str.strPtr, dnd); };
 
 	// extended constructor
 
