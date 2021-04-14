@@ -114,6 +114,8 @@ class String {
 		if(!doNotDestroy) delete[] strPtr;
 	};
 
+	operator const char*() { return strPtr; } // implicit
+	operator char*() { return strPtr; }		  // implicit
 	const char* c_str() { return strPtr; }
 	unsigned_t len() { return strlen(strPtr); }
 	void toLower() { strshift(strPtr, 'Z', 'A', 32); }
@@ -153,13 +155,25 @@ class String {
 		return false;
 	}
 
+	// reallocate to remove trailing null characters
+	void truncate() { init(String(strPtr)); }
+
 	// statics
 
-	static String dump(char* buffer, unsigned_t length) {
+	static String dump(const char* buffer, unsigned_t length) {
 		String result = "[";
 		for(unsigned_t i = 0; i < length; i++) result += strn((void*)((unsigned char)buffer[i]) + ", ");
 		result[result.len() - 2] = ']';
 		return result;
+	}
+
+	static String allocBuf(unsigned_t size, char fill = 0) {
+		String buf = "";
+		delete[] buf.strPtr;
+		buf.strPtr = new char[size + 1];
+		buf.strPtr[size] = 0; // nullterminate buffer
+		for(unsigned_t i = 0; i < size; i++) buf.strPtr[i] = fill;
+		return buf;
 	}
 
 	// dont free stringpointer on destructor if true
