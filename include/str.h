@@ -45,34 +45,11 @@ inline unsigned_t strlen(const char* str) {
 }
 
 // concats two strings
-inline char* strcat(const char* src, const char* concat) {
+inline char* strcat(const char* src, const char* concat, bool freeSrc = false, bool freeConc = false) {
 	char* concatted = new char[strlen(src) + strlen(concat) + 1];
 	strcpy(strcpy(concatted, src), concat);
-	return concatted;
-}
-
-// frees src after concat.
-inline char* strcat_dsrc(char* src, const char* concat) {
-	char* concatted = new char[strlen(src) + strlen(concat) + 1];
-	strcpy(strcpy(concatted, src), concat);
-	delete[] src;
-	return concatted;
-}
-
-// frees both inputs after concat.
-inline char* strcat_dboth(char* src, char* concat) {
-	char* concatted = new char[strlen(src) + strlen(concat) + 1];
-	strcpy(strcpy(concatted, src), concat);
-	delete[] src;
-	delete[] concat;
-	return concatted;
-}
-
-// frees concat after concat
-inline char* strcat_dcon(const char* src, char* concat) {
-	char* concatted = new char[strlen(src) + strlen(concat) + 1];
-	strcpy(strcpy(concatted, src), concat);
-	delete[] concat;
+	if(freeSrc) delete[] src;
+	if(freeConc) delete[] concat;
 	return concatted;
 }
 
@@ -95,8 +72,8 @@ inline char* itoa(integer_t value, unsigned_t minlen = 0, unsigned_t radix = 10,
 // remember to delete[] !!!
 inline char* ftoa(double num) {
 	int x = (int)((num - int(num)) * 10000);
-	char* joined = strcat_dboth(strcat_dsrc(itoa((int)(x < 0 ? -num : num)), "."), itoa(x < 0 ? -x : x, 4));
-	return x < 0 ? strcat_dcon("-", joined) : joined;
+	char* joined = strcat(strcat(itoa((int)(x < 0 ? -num : num)), ".", true), itoa(x < 0 ? -x : x, 4), true, true);
+	return x < 0 ? strcat("-", joined, false, true) : joined;
 }
 
 inline void strshift(char* toShift, char rangeTop, char rangeLower, char toAdd) {
@@ -176,6 +153,15 @@ class String {
 		return false;
 	}
 
+	// statics
+
+	static String dump(char* buffer, unsigned_t length) {
+		String result = "[";
+		for(unsigned_t i = 0; i < length; i++) result += strn((void*)((unsigned char)buffer[i]) + ", ");
+		result[result.len() - 2] = ']';
+		return result;
+	}
+
 	// dont free stringpointer on destructor if true
 	bool doNotDestroy;
 
@@ -196,7 +182,7 @@ class String {
 	String(int num) { defVal(itoa(num), false, true); };					// for old compilers
 	String(unsigned num) { defVal(itoa(num, 0, 10, false), false, true); }; // for old compilers
 	String(double num) { defVal(ftoa(num), false, true); }
-	String(void* hex) { defVal(strcat_dcon("0x", itoa((unsigned_t)hex, 0, 16)), false, true); }
+	String(void* hex) { defVal(strcat("0x", itoa((unsigned_t)hex, 0, 16, false), false, true), false, true); }
 
 	//-----------------------------------
 	// operator= - assign -- top are base
